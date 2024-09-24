@@ -36,7 +36,7 @@ import kotlinx.coroutines.runBlocking
 ///@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalPermissionsApi::class)
 class MainActivity : ComponentActivity() {
-    private lateinit var mediaPlayer: MediaPlayer // типа обещаем что инициализируем позже
+    private var mediaPlayer: MediaPlayer? = null // типа обещаем что инициализируем позже
     private val handler = Handler(Looper.getMainLooper())
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,7 +46,12 @@ class MainActivity : ComponentActivity() {
             urisList.add(element.contentUri)
         }
         var songIndex = 0
-        mediaPlayer = MediaPlayer.create(this, if (urisList.isEmpty()) {  } else { urisList[songIndex] } )
+        if (urisList.isEmpty()) {
+            Log.d("gay", "check the app permissions or the music storage can be empty")
+        } else {
+            mediaPlayer = MediaPlayer.create(this, urisList[songIndex])
+            Log.d("gay", "media player created, media uri: ${urisList[songIndex]}")
+        }
         setContent {
             AudioPlayerTheme {
                 val permissionState =
@@ -87,6 +92,7 @@ class MainActivity : ComponentActivity() {
                             Manifest.permission.READ_MEDIA_AUDIO -> {
                                 when {
                                     perm.status.isGranted -> {
+                                        Log.d("gay", "permission is granted")
                                         Text(
                                             text = "Audio files permission accepted"
                                         )
@@ -99,19 +105,20 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                     perm.status.shouldShowRationale -> {
+                                        Log.d("gay", "permission info")
                                         Text(
                                             text = "Audio files permission is needed " +
                                                     "to access your music files"
                                         )
-                                        Log.d("gay", "perm info")
                                     }
                                     perm.isSecondaryDenied() -> {
+                                        Log.d("gay", "not granted")
                                         Text(
                                             text = "App cant work properly without audio files " +
                                                     "permission, please, give it permission in " +
                                                     "app settings"
                                         )
-                                        Log.d("gay", "not granted")
+
                                     }
                                 }
                             }
@@ -160,11 +167,11 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AudioPlayer(mediaPlayer, newSongIndex = { newSongIndex -> songIndex = newSongIndex } , songUri = urisList[songIndex])
+                    mediaPlayer?.let { AudioPlayer(it, newSongIndex = { newSongIndex -> songIndex = newSongIndex } , songUri = urisList[songIndex]) }
                 }
             }
         }
-        mediaPlayer.setOnCompletionListener {
+        mediaPlayer?.setOnCompletionListener {
         }
     }
     private fun loadMusicFromExternalStorage(): List<SharedStorageMusic> {
@@ -205,7 +212,7 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         handler.removeCallbacksAndMessages(null)
-        mediaPlayer.release()
+        mediaPlayer?.release()
     }
 }
 
