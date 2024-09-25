@@ -12,7 +12,6 @@ import android.provider.MediaStore
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -20,8 +19,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -30,29 +31,30 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.shouldShowRationale
 import com.milku.aiproject.ui.theme.AudioPlayerTheme
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 
 ///@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalPermissionsApi::class)
 class MainActivity : ComponentActivity() {
-    private var mediaPlayer: MediaPlayer? = null // типа обещаем что инициализируем позже
+    private var mediaPlayer: MediaPlayer? = null
     private val handler = Handler(Looper.getMainLooper())
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val musicList = loadMusicFromExternalStorage()
         val urisList = mutableListOf<Uri>()
-        for (element in musicList) {
-            urisList.add(element.contentUri)
-        }
-        var songIndex = 0
-        if (urisList.isEmpty()) {
-            Log.d("gay", "check the app permissions or the music storage can be empty")
-        } else {
-            mediaPlayer = MediaPlayer.create(this, urisList[songIndex])
-            Log.d("gay", "media player created, media uri: ${urisList[songIndex]}")
-        }
         setContent {
+            var songIndex by remember { mutableIntStateOf(0) }
+            for (element in musicList) {
+                urisList.add(element.contentUri)
+                Log.d("gay", "track uri: ${element.contentUri}")
+                Log.d("gay", "track data: $element")
+            }
+            if (urisList.isEmpty()) {
+                Log.d("gay", "check the app permissions or the music storage can be empty")
+            } else {
+                mediaPlayer = MediaPlayer.create(this, urisList[songIndex])
+                Log.d("gay", "media player created, media uri: ${urisList[songIndex]}")
+            }
             AudioPlayerTheme {
                 val permissionState =
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -84,90 +86,112 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 )
-                Column(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    permissionState.permissions.forEach { perm ->
-                        when(perm.permission) {
-                            Manifest.permission.READ_MEDIA_AUDIO -> {
-                                when {
-                                    perm.status.isGranted -> {
-                                        Log.d("gay", "permission is granted")
-                                        Text(
-                                            text = "Audio files permission accepted"
-                                        )
-                                        val music = mutableListOf<String>()
-                                        for (element in loadMusicFromExternalStorage()) {
-                                            music.add(element.name)
-                                        }
-                                        for (element in music) {
-                                            Log.d("gay", element)
-                                        }
-                                    }
-                                    perm.status.shouldShowRationale -> {
-                                        Log.d("gay", "permission info")
-                                        Text(
-                                            text = "Audio files permission is needed " +
-                                                    "to access your music files"
-                                        )
-                                    }
-                                    perm.isSecondaryDenied() -> {
-                                        Log.d("gay", "not granted")
-                                        Text(
-                                            text = "App cant work properly without audio files " +
-                                                    "permission, please, give it permission in " +
-                                                    "app settings"
-                                        )
-
-                                    }
-                                }
-                            }
-                        }
-///
-                    }
-                    permissionState.permissions.forEach { perm ->
-                        when(perm.permission) {
-                            Manifest.permission.READ_EXTERNAL_STORAGE -> {
-                                when {
-                                    perm.status.isGranted -> {
+                Column {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                    ) {
+                        permissionState.permissions.forEach { perm ->
+                            when(perm.permission) {
+                                Manifest.permission.READ_MEDIA_AUDIO -> {
+                                    when {
+                                        perm.status.isGranted -> {
+                                            Log.d("gay", "permission is granted")
                                             Text(
                                                 text = "Audio files permission accepted"
                                             )
-                                        val music = mutableListOf<String>()
-                                        for (element in loadMusicFromExternalStorage()) {
-                                            music.add(element.name)
+                                            val music = mutableListOf<String>()
+                                            for (element in loadMusicFromExternalStorage()) {
+                                                music.add(element.name)
+                                            }
+                                            for (element in music) {
+                                                Log.d("gay", element)
+                                            }
                                         }
-                                        for (element in music) {
-                                            Log.d("gay", element)
+                                        perm.status.shouldShowRationale -> {
+                                            Log.d("gay", "permission info")
+                                            Text(
+                                                text = "Audio files permission is needed " +
+                                                        "to access your music files"
+                                            )
                                         }
-                                    }
-                                    perm.status.shouldShowRationale -> {
-                                        Text(
-                                            text = "External files permission is needed " +
-                                                    "to access your music files"
-                                        )
-                                        Log.d("gay", "perm info")
-                                    }
-                                    perm.isSecondaryDenied() -> {
-                                        Text(
-                                            text = "App cant work properly without external files " +
-                                                    "permission, please, give it permission in " +
-                                                    "app settings"
-                                        )
-                                        Log.d("gay", "not granted")
+                                        perm.isSecondaryDenied() -> {
+                                            Log.d("gay", "not granted")
+                                            Text(
+                                                text = "App cant work properly without audio files " +
+                                                        "permission, please, give it permission in " +
+                                                        "app settings"
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
+                        permissionState.permissions.forEach { perm ->
+                            when(perm.permission) {
+                                Manifest.permission.READ_EXTERNAL_STORAGE -> {
+                                    when {
+                                        perm.status.isGranted -> {
+                                            Text(
+                                                text = "Audio files permission accepted"
+                                            )
+                                            val music = mutableListOf<String>()
+                                            for (element in loadMusicFromExternalStorage()) {
+                                                music.add(element.name)
+                                            }
+                                            for (element in music) {
+                                                Log.d("gay", element)
+                                            }
+                                        }
+                                        perm.status.shouldShowRationale -> {
+                                            Text(
+                                                text = "External files permission is needed " +
+                                                        "to access your music files"
+                                            )
+                                            Log.d("gay", "perm info")
+                                        }
+                                        perm.isSecondaryDenied() -> {
+                                            Text(
+                                                text = "App cant work properly without external files " +
+                                                        "permission, please, give it permission in " +
+                                                        "app settings"
+                                            )
+                                            Log.d("gay", "not granted")
+                                        }
+                                    }
+                                }
+                            }
+
+                        }
 
                     }
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        mediaPlayer?.let {
+                            AudioPlayer(
+                                it,
+                                changeSongIndex = { newSongIndex ->
+                                    songIndex = newSongIndex
+                                    Log.d("gay", "the current song index is: $newSongIndex")
+                                },
+                                songUri = urisList[songIndex] // у тебя всегда первый тре?да. ну он и не будет обновлятся.
+                            )
+                            Log.d("gay", "track info ${mediaPlayer?.trackInfo}")
+                        }
+                        if (urisList.isEmpty()) {
+                            Text(
+                                modifier = Modifier
+                                    .fillMaxSize(),
 
-                }
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    mediaPlayer?.let { AudioPlayer(it, newSongIndex = { newSongIndex -> songIndex = newSongIndex } , songUri = urisList[songIndex]) }
+                                text = "Music list is empty",
+                                color = Color.Black,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -216,28 +240,27 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+//@Composable
+//fun AudioPlayer(
+//    mediaPlayer: MediaPlayer,
+//    songIndex: (Int) -> Unit,
+//    songUri: Uri
+//) {
+//    val context = LocalContext.current
+//}
+
 @Composable
 fun AudioPlayer(
     mediaPlayer: MediaPlayer,
-    newSongIndex: (Int) -> Unit,
-    songUri: Uri
+    songUri: Uri,
+    changeSongIndex: (Int) -> Unit
 ) {
-    var currentSongIndex by remember { mutableStateOf(newSongIndex) }
+    var newSongIndex by remember { mutableIntStateOf(0) }
     var isPlaying by remember { mutableStateOf(false) }
     var currentProgress by remember { mutableFloatStateOf(0f) }
-    var trackName by remember { mutableStateOf("Sample Track") }
+    val trackName by remember { mutableStateOf("Sample Track") }
     val totalDuration = mediaPlayer.duration.toFloat()
     val context = LocalContext.current
-
-    LaunchedEffect(Unit) {
-        while (true) {
-            if (isPlaying) {
-                currentProgress = mediaPlayer.currentPosition.toFloat() / totalDuration
-            }
-            delay(1000)
-        }
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -267,14 +290,36 @@ fun AudioPlayer(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            IconButton(onClick = { currentSongIndex = newSongIndex
+            IconButton(onClick = {
+                if (newSongIndex <= 0) {
+                    newSongIndex = 0
+                } else {
+                    newSongIndex -= 1
+                }
+                changeSongIndex(newSongIndex)
+                mediaPlayer.stop()
                 mediaPlayer.reset()
-                mediaPlayer.setDataSource(context, songUri)
-                mediaPlayer.prepare()
+                mediaPlayer.release()
+                try {
+                    mediaPlayer.setDataSource(context, songUri)
+                    mediaPlayer.prepare()
+                    if (isPlaying) {
+                        mediaPlayer.reset()
+                        mediaPlayer.setDataSource(context, songUri)
+                        mediaPlayer.prepare()
+                        mediaPlayer.start()
+                    } else {
+                        mediaPlayer.start()
+                    }
+                } catch (e: Exception) {
+                    Log.e("AudioPlayer", "Error setting data source", e)
+                }
+                isPlaying = !isPlaying
             }) {
                 Icon(Icons.Filled.SkipPrevious, contentDescription = "Previous")
             }
             IconButton(onClick = {
+                Log.d("song index", "the song index is $newSongIndex")
                 if (isPlaying) {
                     mediaPlayer.pause()
                 } else {
@@ -283,14 +328,33 @@ fun AudioPlayer(
                 isPlaying = !isPlaying
             }) {
                 Icon(
-                    if (isPlaying) Icons.Filled.PlayArrow else Icons.Filled.PlayArrow,
+                    if (isPlaying == true) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                     contentDescription = if (isPlaying) "Pause" else "Play"
                 )
             }
-            IconButton(onClick = { currentSongIndex = newSongIndex
+            IconButton(onClick = {
+                newSongIndex+=1
+                changeSongIndex(newSongIndex)
+                mediaPlayer.stop()
                 mediaPlayer.reset()
-                mediaPlayer.setDataSource(context, songUri)
-                mediaPlayer.prepare()
+                Log.d("audioPlayer state", "the media was stop and reset")
+                try {
+                    mediaPlayer.setDataSource(context, songUri)
+                    mediaPlayer.prepare()
+                    Log.d("audioPlayer state", "the media was set and prepare")
+                    if (isPlaying) {
+                        mediaPlayer.start()
+                        Log.d("audioPlayer state", "the media was playing and was started successfully")
+                        Log.d("song index", "the song index is $newSongIndex")
+                    } else {
+                        mediaPlayer.start()
+                        Log.d("audioPlayer state", "the media wasn't playing and was started successfully")
+                        Log.d("song index", "the song index is $newSongIndex")
+                    }
+                } catch (e: Exception) {
+                    Log.e("AudioPlayer", "Error setting data source", e)
+                }
+                isPlaying = !isPlaying
             }) {
                 Icon(Icons.Filled.SkipNext, contentDescription = "Next")
             }
