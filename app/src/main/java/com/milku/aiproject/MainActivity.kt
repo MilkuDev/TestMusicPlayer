@@ -252,6 +252,8 @@ fun AudioPlayer(
     val trackName by remember { mutableStateOf("Sample Track") }
     val totalDuration = mediaPlayer.duration.toFloat()
     val context = LocalContext.current
+    var isInitialized by remember { mutableStateOf(false) }
+    var newMediaPlayer by remember { mutableStateOf(mediaPlayer) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -281,6 +283,18 @@ fun AudioPlayer(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
+//            IconButton( // play
+//                onClick = {
+//                    if (mediaPlayer.isPlaying) {
+//                        mediaPlayer.stop()
+//                    } else {
+//                        mediaPlayer.start()
+//                    }
+//                }
+//            ) {
+//                Icon(Icons.Filled.SkipPrevious, contentDescription = "Previous")
+//            }
+
             IconButton(onClick = {
                 if (newSongIndex <= 0) {
                     newSongIndex = 0
@@ -289,22 +303,43 @@ fun AudioPlayer(
                 }
                 Log.d("audioPlayer state", "the media was stop and reset")
                 try {
-                    if (mediaPlayer.isPlaying) { // 2. is playing
-                        mediaPlayer.stop() // 3. stopped
-                        Log.d("state", "stop, Stopped")
-                        mediaPlayer.reset() // 5. idle
-                        Log.d("state", "reset, Idle")
+                    Log.d("state", "Playing")
+                    mediaPlayer.stop() // 3. stopped
+                    Log.d("state", "Stopped")
+                    mediaPlayer.release()
+                    Log.d("state", "End")
+                    mediaPlayer.setOnCompletionListener {
+                        Log.d("state", "OnCompletion")
+                        changeSongIndex(newSongIndex)
+                        Log.d("state", "ChangeSongIndex, song index: $newSongIndex")
+                        mediaPlayer.reset()
+                        Log.d("state", "Reset")
+                        mediaPlayer.setDataSource(context, songUri)
+                        Log.d("state", "SetDataSource, data source: $songUri")
+                        isInitialized = true
+                    }
+                    if (isInitialized == true) {
+                        mediaPlayer.prepare()
+                        Log.d("state", "Prepared")
+                        mediaPlayer.start()
+                        Log.d("state", "Started")
+                        isInitialized = false
                     } else {
                         mediaPlayer.reset()
-                    }
-                    mediaPlayer.setDataSource(context, songUri)
-                    mediaPlayer.prepareAsync()
-                    mediaPlayer.setOnPreparedListener {
-                        mediaPlayer.start()
                         changeSongIndex(newSongIndex)
+                        mediaPlayer.setDataSource(context, songUri)
+                        mediaPlayer.prepare()
+                        Log.d("state", "Prepared")
+                        mediaPlayer.start()
+                        Log.d("state", "Started")
+                        isInitialized = false
                     }
-                } catch (e: Exception) {
-                    Log.e("AudioPlayer", "Error setting data source", e)
+                    Log.d(
+                        "audioPlayer state",
+                        "MediaPlayer started successfully with song index $newSongIndex"
+                    )
+                } catch (e: IllegalStateException) {
+                    Log.e("AudioPlayer", "IllegalStateException", e)
                 }
             }) {
                 Icon(Icons.Filled.SkipPrevious, contentDescription = "Previous")
@@ -319,8 +354,8 @@ fun AudioPlayer(
                         mediaPlayer.start()
                         Log.d("state", "Started")
                     }
-                } catch (e: Exception) {
-                    Log.e("AudioPlayer", "Error in play/pause", e)
+                } catch (e: IllegalStateException) {
+                    Log.e("AudioPlayer", "IllegalStateException", e)
                 }
             }) {
                 Icon(
@@ -329,25 +364,45 @@ fun AudioPlayer(
                 )
             }
             IconButton(onClick = {
-                newSongIndex+=1
+                newSongIndex += 1
                 try {
-                    if (mediaPlayer.isPlaying) { // 2. is playing
-                        mediaPlayer.stop() // 3. stopped
-                        Log.d("state", "stop, Stopped")
-                        mediaPlayer.reset() // 5. idle
-                        Log.d("state", "reset, Idle")
+                    Log.d("state", "Playing")
+                    mediaPlayer.stop() // 3. stopped
+                    Log.d("state", "Stopped")
+                    mediaPlayer.release()
+                    Log.d("state", "End")
+                    mediaPlayer.setOnCompletionListener {
+                        Log.d("state", "OnCompletion")
+                        changeSongIndex(newSongIndex)
+                        Log.d("state", "ChangeSongIndex, song index: $newSongIndex")
+                        mediaPlayer.reset()
+                        Log.d("state", "Reset")
+                        mediaPlayer.setDataSource(context, songUri)
+                        Log.d("state", "SetDataSource, data source: $songUri")
+                        isInitialized = true
+                    }
+                    if (isInitialized == true) {
+                        mediaPlayer.prepare()
+                        Log.d("state", "Prepared")
+                        mediaPlayer.start()
+                        Log.d("state", "Started")
+                        isInitialized = false
                     } else {
                         mediaPlayer.reset()
-                    }
-                    mediaPlayer.setDataSource(context, songUri)
-                    mediaPlayer.prepareAsync()
-                    mediaPlayer.setOnPreparedListener {
-                        mediaPlayer.start()
                         changeSongIndex(newSongIndex)
+                        mediaPlayer.setDataSource(context, songUri)
+                        mediaPlayer.prepare()
+                        Log.d("state", "Prepared")
+                        mediaPlayer.start()
+                        Log.d("state", "Started")
+                        isInitialized = false
                     }
-                    Log.d("audioPlayer state", "MediaPlayer started successfully with song index $newSongIndex")
-                } catch (e: Exception) {
-                    Log.e("AudioPlayer", "Error setting data source", e)
+                    Log.d(
+                        "audioPlayer state",
+                        "MediaPlayer started successfully with song index $newSongIndex"
+                    )
+                } catch (e: IllegalStateException) {
+                    Log.e("AudioPlayer", "IllegalStateException", e)
                 }
             }) {
                 Icon(Icons.Filled.SkipNext, contentDescription = "Next")
